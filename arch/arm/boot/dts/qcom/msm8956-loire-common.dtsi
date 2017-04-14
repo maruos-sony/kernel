@@ -284,29 +284,25 @@
 			somc,pattern_multiple_pulse = <1>;
 			somc,pattern_tp_led = <0>;
 			somc,pattern_fade_out = <0>;
+			somc,color_variation_max_num = <1>;
+			somc,max_current_uA = <0 12000 5000 4000 4000 8000 8000>;
 			somc,rgb_blue {
 				label = "rgb";
-				linux,name = "as3668:blue";
-				somc,max_single_current_uA = <12000>;
-				somc,max_mix_current_uA = <5000>;
+				linux,name = "led:rgb_blue";
 				somc,pattern_frame_mask = <0>;
 				somc,pattern_frame_delay = <0>;
 				linux,default-trigger = "none";
 			};
 			somc,rgb_red {
 				label = "rgb";
-				linux,name = "as3668:red";
-				somc,max_single_current_uA = <4000>;
-				somc,max_mix_current_uA = <4000>;
+				linux,name = "led:rgb_red";
 				somc,pattern_frame_mask = <0>;
 				somc,pattern_frame_delay = <0>;
 				linux,default-trigger = "none";
 			};
 			somc,rgb_green {
 				label = "rgb";
-				linux,name = "as3668:green";
-				somc,max_single_current_uA = <8000>;
-				somc,max_mix_current_uA = <8000>;
+				linux,name = "led:rgb_green";
 				somc,pattern_frame_mask = <0>;
 				somc,pattern_frame_delay = <0>;
 				linux,default-trigger = "none";
@@ -474,18 +470,12 @@
 	};
 
 	slim_msm: slim@c140000 {
-		qcom,cdc-micbias1-mv = <1800>;
-		qcom,cdc-micbias2-mv = <2450>;
-		qcom,cdc-micbias3-mv = <2450>;
-		qcom,cdc-micbias4-mv = <1800>;
-		qcom,cdc-dmic-sample-rate = <2400000>;
-
 		tasha_codec {
-			swr_master {
-				wsa881x@20170212 {
-					qcom,spkr-sd-n-gpio = <&msm_gpio 101 0>;
-				};
-			};
+			qcom,cdc-micbias1-mv = <1800>;
+			qcom,cdc-micbias2-mv = <2450>;
+			qcom,cdc-micbias3-mv = <2450>;
+			qcom,cdc-micbias4-mv = <1800>;
+			qcom,cdc-dmic-sample-rate = <2400000>;
 		};
 	};
 
@@ -775,6 +765,11 @@
 		reg = <0x4a3000 0x1000>;
 		clock-frequency = <32768>;
 	};
+
+	/delete-node/ qcom,iris-fm;
+	/delete-node/ qcom,pronto@a21b000;
+	/delete-node/ qcom,wcnss-wlan@0a000000;
+
 };
 
 &pm8950_gpios {
@@ -2741,7 +2736,19 @@
 };
 
 &spmi_bus {
+	qcom,pm8004@4 {
+		qcom,leds@a100 {
+			status = "disabled";
+		};
+		qcom,leds@a300 {
+			status = "disabled";
+		};
+	};
+
 	qcom,pm8950@0 {
+		qcom,leds@a300 {
+			status = "disabled";
+		};
 		qcom,power-on@800 {
 			qcom,s3-debounce = <16>;
 			qcom,s3-src = "resin";
@@ -2752,11 +2759,22 @@
 	};
 
 	qcom,pmi8950@2 {
+		qcom,leds@a100 {
+			status = "disabled";
+		};
 		qcom,power-on@800 {
 			qcom,s3-debounce = <128>;
 			qcom,s3-src = "kpdpwr-and-resin";
 		};
 	};
+
+	qcom,pmi8950@3 {
+		qcom,leds@d300 {
+			/delete-node/ qcom,flash_1;
+			/delete-node/ qcom,torch_1;
+		};
+	};
+
 };
 
 &sdhc_2 {
@@ -2805,4 +2823,12 @@
 	reg = <0x0 0x0 0x0 0x1400000>;
 };
 
-
+&slim_msm {
+	tasha_codec {
+		swr_master {
+			wsa881x@20170212 {
+				qcom,spkr-sd-n-gpio = <&msm_gpio 101 0>;
+			};
+		};
+	};
+};

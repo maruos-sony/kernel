@@ -1444,7 +1444,7 @@ static void msm_hs_submit_tx_locked(struct uart_port *uport)
 		jiffies + msecs_to_jiffies(MSEC_PER_SEC));
 
 	/* Notify the bluesleep driver of outgoing data, if available. */
-#ifdef CONFIG_BT_MSM_SLEEP
+#if defined(CONFIG_BT_MSM_SLEEP) && !defined(CONFIG_LINE_DISCIPLINE_DRIVER)
 	bluesleep_outgoing_data();
 #endif
 
@@ -2290,8 +2290,6 @@ void msm_hs_resource_off(struct msm_hs_port *msm_uport)
 		msm_hs_write(uport, UART_DM_DMEN, data);
 		sps_tx_disconnect(msm_uport);
 	}
-	if (!atomic_read(&msm_uport->client_req_state))
-		msm_hs_enable_flow_control(uport, false);
 }
 
 void msm_hs_resource_on(struct msm_hs_port *msm_uport)
@@ -2730,8 +2728,10 @@ static int msm_hs_startup(struct uart_port *uport)
 
 
 	spin_lock_irqsave(&uport->lock, flags);
+#ifndef CONFIG_LINE_DISCIPLINE_DRIVER
 	atomic_set(&msm_uport->client_count, 0);
 	atomic_set(&msm_uport->client_req_state, 0);
+#endif
 	LOG_USR_MSG(msm_uport->ipc_msm_hs_pwr_ctxt,
 			"%s: Client_Count 0\n", __func__);
 	msm_hs_start_rx_locked(uport);
@@ -3427,6 +3427,7 @@ static int msm_hs_probe(struct platform_device *pdev)
 	memset(name, 0, sizeof(name));
 	scnprintf(name, sizeof(name), "%s%s", dev_name(msm_uport->uport.dev),
 									"_state");
+#ifdef CONFIG_IPC_LOGGING
 	msm_uport->ipc_msm_hs_log_ctxt =
 			ipc_log_context_create(IPC_MSM_HS_LOG_STATE_PAGES,
 								name, 0);
@@ -3435,11 +3436,11 @@ static int msm_hs_probe(struct platform_device *pdev)
 								__func__);
 	} else {
 		msm_uport->ipc_debug_mask = INFO_LEV;
-		ret = sysfs_create_file(&pdev->dev.kobj,
-				&dev_attr_debug_mask.attr);
-		if (unlikely(ret))
-			MSM_HS_WARN("%s: Failed to create dev. attr", __func__);
 	}
+#endif
+	ret = sysfs_create_file(&pdev->dev.kobj, &dev_attr_debug_mask.attr);
+	if (unlikely(ret))
+		MSM_HS_WARN("%s: Failed to create dev. attr", __func__);
 
 	uport->irq = core_irqres;
 	msm_uport->bam_irq = bam_irqres;
@@ -3517,30 +3518,33 @@ static int msm_hs_probe(struct platform_device *pdev)
 	memset(name, 0, sizeof(name));
 	scnprintf(name, sizeof(name), "%s%s", dev_name(msm_uport->uport.dev),
 									"_tx");
+#ifdef CONFIG_IPC_LOGGING
 	msm_uport->tx.ipc_tx_ctxt =
 		ipc_log_context_create(IPC_MSM_HS_LOG_DATA_PAGES, name, 0);
 	if (!msm_uport->tx.ipc_tx_ctxt)
 		dev_err(&pdev->dev, "%s: error creating tx logging context",
 								__func__);
-
+#endif
 	memset(name, 0, sizeof(name));
 	scnprintf(name, sizeof(name), "%s%s", dev_name(msm_uport->uport.dev),
 									"_rx");
 	msm_uport->rx.ipc_rx_ctxt = ipc_log_context_create(
 					IPC_MSM_HS_LOG_DATA_PAGES, name, 0);
+#ifdef CONFIG_IPC_LOGGING
 	if (!msm_uport->rx.ipc_rx_ctxt)
 		dev_err(&pdev->dev, "%s: error creating rx logging context",
 								__func__);
-
+#endif
 	memset(name, 0, sizeof(name));
 	scnprintf(name, sizeof(name), "%s%s", dev_name(msm_uport->uport.dev),
 									"_pwr");
+#ifdef CONFIG_IPC_LOGGING
 	msm_uport->ipc_msm_hs_pwr_ctxt = ipc_log_context_create(
 					IPC_MSM_HS_LOG_USER_PAGES, name, 0);
 	if (!msm_uport->ipc_msm_hs_pwr_ctxt)
 		dev_err(&pdev->dev, "%s: error creating usr logging context",
 								__func__);
-
+#endif
 	uport->irq = core_irqres;
 	msm_uport->bam_irq = bam_irqres;
 
